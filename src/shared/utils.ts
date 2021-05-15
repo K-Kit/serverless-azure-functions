@@ -130,7 +130,7 @@ export class Utils {
 
     const entryPoint = (handlerSplit.length > 1) ? handlerSplit[handlerSplit.length - 1] : undefined;
 
-    const handlerPath = ((handlerSplit.length > 1) ? handlerSplit[0] : handler) 
+    const handlerPath = ((handlerSplit.length > 1) ? handlerSplit[0] : handler)
       + constants.runtimeExtensions[getRuntimeLanguage(config.provider.runtime)]
 
     return {
@@ -233,7 +233,7 @@ export class Utils {
       })
     });
   }
-  
+
   /*
    * Spawn a Node child process from executable within node_modules/.bin
    * @param command CLI Command - NO ARGS
@@ -242,7 +242,8 @@ export class Utils {
   public static spawnLocal(options: ServerlessSpawnOptions): Promise<void> {
     const { serverless, command } = options;
     const localCommand = join(
-      serverless.config.servicePath,
+      // @ts-ignore
+      serverless.configurationInput.moduleRoot || serverless.config.servicePath,
       "node_modules",
       ".bin",
       command
@@ -257,7 +258,7 @@ export class Utils {
   // public static spawn()
 
   public static spawn(options: ServerlessSpawnOptions): Promise<void> {
-    const { 
+    const {
       command,
       serverless,
       commandArgs,
@@ -277,7 +278,7 @@ export class Utils {
       serverless.cli.log(`Spawning process '${commandName || command} ${commandArgs.join(" ")}'`);
     }
     return new Promise(async (resolve, reject) => {
-      const spawnOptions: SpawnOptions = { 
+      const spawnOptions: SpawnOptions = {
         env,
         stdio: stdio || "inherit",
         cwd: cwd

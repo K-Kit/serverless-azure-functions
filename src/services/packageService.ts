@@ -15,9 +15,12 @@ export class PackageService extends BaseService {
   }
 
   public cleanUpServerlessDir() {
-    const serverlessDir = path.join(this.serverless.config.servicePath, ".serverless");
+    const serverlessDir = path.join(
+      this.serverless.config.servicePath,
+      ".serverless"
+    );
     if (fs.existsSync(serverlessDir)) {
-      this.log("Removing .serverless directory")
+      this.log("Removing .serverless directory");
       rimraf.sync(serverlessDir);
     }
   }
@@ -26,9 +29,14 @@ export class PackageService extends BaseService {
    * Creates the function.json binding files required for the serverless service
    */
   public async createBindings(offlineMode: boolean = false): Promise<void> {
-    const createEventsPromises = this.serverless.service.getAllFunctions()
+    const createEventsPromises = this.serverless.service
+      .getAllFunctions()
       .map(async (functionName) => {
-        const metaData = await Utils.getFunctionMetaData(functionName, this.serverless, offlineMode);
+        const metaData = await Utils.getFunctionMetaData(
+          functionName,
+          this.serverless,
+          offlineMode
+        );
         return this.createBinding(functionName, metaData);
       });
     await Promise.all(createEventsPromises);
@@ -69,23 +77,13 @@ export class PackageService extends BaseService {
    * Cleans up generated function.json files after packaging has completed
    */
   public cleanUp() {
-    const functionFilesToRemove = [
-      "function.json",
-    ];
+    const functionFilesToRemove = ["function.json"];
 
-    const functionFoldersToRemove = [
-      "__pycache__"
-    ]
+    const functionFoldersToRemove = ["__pycache__"];
 
-    const rootFilesToRemove = [
-      ".funcignore"
-    ]
+    const rootFilesToRemove = [".funcignore"];
 
-    const rootFoldersToRemove = [
-      constants.tmpBuildDir,
-      "bin",
-      "obj",
-    ]
+    const rootFoldersToRemove = [constants.tmpBuildDir, "bin", "obj"];
 
     this.serverless.service.getAllFunctions().map((functionName) => {
       // Delete function.json if exists in function folder
@@ -136,37 +134,55 @@ export class PackageService extends BaseService {
   /**
    * Creates the function.json for for the specified function
    */
-  public createBinding(functionName: string, functionMetadata: FunctionMetadata) {
+  public createBinding(
+    functionName: string,
+    functionMetadata: FunctionMetadata
+  ) {
     const functionJSON = this.getFunctionJson(functionName, functionMetadata);
     const functionDirPath = this.makeFunctionDir(functionName);
 
-    fs.writeFileSync(path.join(functionDirPath, "function.json"), this.stringify(functionJSON));
+    fs.writeFileSync(
+      path.join(functionDirPath, "function.json"),
+      this.stringify(functionJSON)
+    );
     return Promise.resolve();
   }
 
-  private getFunctionJson(functionName: string, functionMetadata: FunctionMetadata) {
+  private getFunctionJson(
+    functionName: string,
+    functionMetadata: FunctionMetadata
+  ) {
     const functionJSON = functionMetadata.params.functionJson;
     const { entryPoint, handlerPath } = functionMetadata;
     functionJSON.entryPoint = entryPoint;
     if (this.configService.isPythonTarget()) {
-      const index = (functionJSON.bindings as any[])
-        .findIndex((binding) => (!binding.direction || binding.direction === "out"));
+      const index = (functionJSON.bindings as any[]).findIndex(
+        (binding) => !binding.direction || binding.direction === "out"
+      );
 
       if (functionJSON.bindings[index]) {
         functionJSON.bindings[index].name = "$return";
       }
     }
-    functionJSON.scriptFile = handlerPath;
+    // @todo make this dynamic
+    functionJSON.scriptFile = `../${
+      this.configService.options.out
+    }/service/${handlerPath.replace("../", "")}`;
 
     const functionObject = this.configService.getFunctionConfig()[functionName];
     const incomingBinding = Utils.getIncomingBindingConfig(functionObject);
 
-    const bindingAzureSettings = Utils.get(incomingBinding, constants.xAzureSettings, incomingBinding);
+    const bindingAzureSettings = Utils.get(
+      incomingBinding,
+      constants.xAzureSettings,
+      incomingBinding
+    );
 
     if (bindingAzureSettings.route) {
       // Find incoming binding within functionJSON and set the route
-      const index = (functionJSON.bindings as any[])
-        .findIndex((binding) => (!binding.direction || binding.direction === "in"));
+      const index = (functionJSON.bindings as any[]).findIndex(
+        (binding) => !binding.direction || binding.direction === "in"
+      );
 
       if (functionJSON.bindings[index]) {
         functionJSON.bindings[index].route = bindingAzureSettings.route;
@@ -177,7 +193,10 @@ export class PackageService extends BaseService {
   }
 
   private makeFunctionDir(functionName: string) {
-    const functionDirPath = path.join(this.serverless.config.servicePath, functionName);
+    const functionDirPath = path.join(
+      this.serverless.config.servicePath,
+      functionName
+    );
     if (!fs.existsSync(functionDirPath)) {
       fs.mkdirSync(functionDirPath);
     }
