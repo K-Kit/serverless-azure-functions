@@ -5,7 +5,7 @@ import Serverless from "serverless";
 import { constants } from "../shared/constants";
 import { FunctionMetadata, Utils } from "../shared/utils";
 import { BaseService } from "./baseService";
-
+import * as R from "ramda";
 /**
  * Adds service packing support
  */
@@ -164,10 +164,11 @@ export class PackageService extends BaseService {
         functionJSON.bindings[index].name = "$return";
       }
     }
+    const outArg = R.pathOr(false, ["configService", "options", "out"], this);
     // @todo make this dynamic
-    functionJSON.scriptFile = `../${
-      this.configService.options.out
-    }/service/${handlerPath.replace("../", "")}`;
+    functionJSON.scriptFile = outArg
+      ? `../${outArg}/service/${handlerPath.replace("../", "")}`
+      : handlerPath;
 
     const functionObject = this.configService.getFunctionConfig()[functionName];
     const incomingBinding = Utils.getIncomingBindingConfig(functionObject);
